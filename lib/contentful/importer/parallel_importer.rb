@@ -83,6 +83,21 @@ module Contentful
         end
       end
 
+      def get_all_assets
+        assets = Contentful::Management::Asset.all(config.config['space_id'],{limit: 100})
+        CSV.open("#{config.data_dir}/all_assets.csv", 'w') { |csv| csv << %w[id url] }
+        assets.items.each do |asset|
+          CSV.open("#{config.data_dir}/all_assets.csv", 'a') { |csv| csv << [asset.id, asset.file.url] }
+        end
+
+        while assets.total > (assets.skip + assets.limit) do
+          assets = Contentful::Management::Asset.all(config.config['space_id'],{limit: assets.limit, skip: assets.skip + assets.limit})
+          assets.items.each do |asset|
+            CSV.open("#{config.data_dir}/all_assets.csv", 'a') { |csv| csv << [asset.id, asset.file.url] }
+          end
+        end
+      end
+
       def import_asset(asset_attributes)
         logger.info "Import asset - #{asset_attributes['id']} "
         asset_title = asset_attributes['name'].present? ? asset_attributes['name'] : asset_attributes['id']
