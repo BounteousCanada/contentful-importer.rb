@@ -29,6 +29,7 @@ module Contentful
       require_relative 'publish_entries'
       require_relative 'test_credentials'
       require_relative 'get_assets'
+      require_relative 'delete_assets'
 
       attr_reader :importer, :converter, :config, :json_validator
 

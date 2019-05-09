@@ -98,6 +98,45 @@ module Contentful
         end
       end
 
+      def delete_assets
+        fail 'Missing `delete_assets_filter` argument from settings' if !config.config['delete_assets_filter'].present? || config.config['delete_assets_filter'].nil?
+        filter = config.config['delete_assets_filter']
+
+        if File.exist?("#{config.data_dir}/all_assets.csv")
+          logger.info "all_assets.csv found skipping fetch..."
+        else
+          logger.info "Fetching asset list..."
+          get_all_assets
+        end
+
+        success = 0
+        error = 0
+
+        CSV.foreach("#{config.data_dir}/all_assets.csv", :headers => true, :header_converters => :symbol, :converters => :all) do |row|
+          asset_id = row.fields[0]
+          if asset_id.start_with?(filter) || filter == '*'
+            logger.info "Checking #{asset_id}"
+            asset = Contentful::Management::Asset.find(config.config['space_id'], asset_id)
+            if asset.is_a?(Contentful::Management::Asset)
+              logger.info "Found #{asset_id}"
+              result = asset.destroy
+              if result
+                logger.info "Successfully deleted #{asset_id}"
+                success += 1
+              else
+                logger.info "Error deleting #{asset_id}"
+                error += 1
+              end
+            else
+              logger.info "Asset not found skipping #{asset_id}"
+            end
+          end
+        end
+
+        logger.info "Total assets deleted: #{success}, total errors: #{error}"
+
+      end
+
       def import_asset(asset_attributes)
         logger.info "Import asset - #{asset_attributes['id']} "
         asset_title = asset_attributes['name'].present? ? asset_attributes['name'] : asset_attributes['id']
